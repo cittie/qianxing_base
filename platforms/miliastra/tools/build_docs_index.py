@@ -148,7 +148,7 @@ def write_headings(docs: list[Doc], out: Path) -> int:
     rows = 0
     with out.open("w", encoding="utf-8", newline="\n") as fh:
         fh.write("# 全库标题索引\n\n")
-        fh.write("> 自动生成（`tools/build_docs_index.py`），**请勿手工编辑**。\n")
+        fh.write("> 自动生成（基座 `platforms/miliastra/tools/build_docs_index.py`），**请勿手工编辑**。\n")
         fh.write("> 用途：一次 grep 定位到「哪个文件、哪一节」讲这件事。\n")
         fh.write(FRESHNESS_WARNING)
         fh.write("\n")
@@ -173,7 +173,7 @@ def write_nodes(docs: list[Doc], out: Path) -> int:
     rows = 0
     with out.open("w", encoding="utf-8", newline="\n") as fh:
         fh.write("# 节点索引\n\n")
-        fh.write("> 自动生成（`tools/build_docs_index.py`），**请勿手工编辑**。\n")
+        fh.write("> 自动生成（基座 `platforms/miliastra/tools/build_docs_index.py`），**请勿手工编辑**。\n")
         fh.write("> 来源：官方节点目录类文档（执行节点 / 事件节点 / 查询节点 …）。\n")
         fh.write(FRESHNESS_WARNING)
         fh.write("\n")
@@ -199,7 +199,7 @@ def write_topics(docs: list[Doc], out: Path, per_keyword: int = 6) -> int:
     rows = 0
     with out.open("w", encoding="utf-8", newline="\n") as fh:
         fh.write("# 主题索引（不知道该搜什么词时先看这里）\n\n")
-        fh.write("> 自动生成（`tools/build_docs_index.py`），**请勿手工编辑**。\n")
+        fh.write("> 自动生成（基座 `platforms/miliastra/tools/build_docs_index.py`），**请勿手工编辑**。\n")
         fh.write("> 命中行下面给出「所在章节」与「文件:行」，直接 `read` 那个文件的对应行即可。\n")
         fh.write(FRESHNESS_WARNING)
         fh.write("\n")
