@@ -1,25 +1,31 @@
 #!/usr/bin/env python3
-"""Check whether the official-docs mirror is behind its upstream repository.
+"""Check whether a local documentation mirror is behind its upstream git repository.
 
-The mirror is a snapshot of the third-party repo `1475505/Miliastra-knowledge`, which crawls
-the official site. Two different questions get confused easily:
+A "mirror" here is just a directory of markdown files crawled from some upstream repo. This tool
+asks GitHub for that repo's HEAD and compares it with what the mirror recorded last time, so you
+can tell whether refreshing is worth the download.
 
-    "is my mirror behind upstream?"      <- this script answers this
-    "is the data current in the game?"   <- nobody can answer this from documents alone;
-                                            upstream only knows what the site said the last
-                                            time it crawled, and the site itself can lag the
-                                            implementation. Ability questions need in-editor tests.
+The upstream repository is **not hardcoded**: give it with `--repo owner/name`, or leave it out
+and the tool reads the `repo` field of `<mirror>/upstream-state.json` (which `--record` writes).
 
-It compares the upstream HEAD commit against a locally recorded one and tells you whether to
-refresh. Direct HTTPS to api.github.com works on this machine; if it ever does not, the PAC is
-evaluated (via tools/pac_proxy.py) and the request is retried through that proxy with curl.
+Exit codes: 0 = mirror is current, 1 = update available (or no baseline recorded), 2 = unreachable.
 
-Usage:
-    python tools/check_docs_update.py            # report status
-    python tools/check_docs_update.py --record   # record current upstream as "what we have"
-    python tools/check_docs_update.py --json
+两个问题很容易被混为一谈：
 
-Exit codes: 0 up to date, 1 update available, 2 could not check.
+    「我的镜像落后于上游了吗？」      ← 本脚本回答这个
+    「游戏里的数据是最新的吗？」      ← 单靠文档谁都回答不了；上游只知道它上次爬取时
+                                      网站写了什么，而网站本身可能就滞后于实现。
+                                      能力类问题必须去真实环境里实测。
+
+它把上游 HEAD 提交与本地登记的提交做比较，告诉你值不值得刷新。
+本机直连 api.github.com 可用；万一不通，会解析 PAC（经由 tools/pac_proxy.py）并用 curl 重试。
+
+用法：
+    python tools/check_docs_update.py --mirror <镜像根>              # 报告状态
+    python tools/check_docs_update.py --mirror <镜像根> --record     # 把当前上游登记为"我们已有的"
+    python tools/check_docs_update.py --mirror <镜像根> --json
+
+退出码：0 = 一致，1 = 有更新，2 = 连不上。
 """
 
 from __future__ import annotations
@@ -38,11 +44,21 @@ WORKSPACE = TOOLS.parent
 MIRROR = WORKSPACE / "research" / "official-docs"
 STATE_FILE = MIRROR / "upstream-state.json"
 
-REPO = "1475505/Miliastra-knowledge"
-API = f"https://api.github.com/repos/{REPO}/commits?per_page=1"
-GIT_URL = f"https://github.com/{REPO}.git"
+REPO = ""      # 由 --repo 或镜像的 upstream-state.json 提供，见 main()
+API = ""
+GIT_URL = ""
 
+# 统计文件数时只看这些子目录（镜像可能按别的方式组织；不存在的会被跳过）
 SCOPES = ("guide", "tutorial", "faq", "client")
+
+
+def load_repo_from_state(mirror: Path) -> str:
+    """从镜像的 upstream-state.json 里读上游仓库（`owner/name`）。"""
+    try:
+        data = json.loads((mirror / "upstream-state.json").read_text(encoding="utf-8"))
+    except Exception:      # noqa: BLE001
+        return ""
+    return str(data.get("repo", ""))
 
 
 def utc_now() -> str:
@@ -152,16 +168,26 @@ def _from_api(data: list) -> dict:
 
 
 def main() -> int:
-    global MIRROR, STATE_FILE
+    global MIRROR, STATE_FILE, REPO, API, GIT_URL
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--record", action="store_true", help="store the current upstream as our baseline")
-    ap.add_argument("--json", action="store_true", help="machine-readable output")
+    ap.add_argument("--record", action="store_true", help="把当前上游登记为我们的基线")
+    ap.add_argument("--json", action="store_true", help="输出 JSON（供脚本/定时任务读取）")
     ap.add_argument("--mirror", default=str(MIRROR),
-                    help="文档镜像根目录（默认按脚本位置推断；从基座运行时应显式指定游戏侧的镜像路径）")
+                    help="文档镜像根目录（默认按脚本位置推断；从基座调用时应显式指向游戏侧的镜像路径）")
+    ap.add_argument("--repo", default="",
+                    help="上游仓库 owner/name（缺省时读镜像的 upstream-state.json）")
     args = ap.parse_args()
 
     MIRROR = Path(args.mirror).expanduser().resolve()
     STATE_FILE = MIRROR / "upstream-state.json"
+
+    REPO = args.repo or load_repo_from_state(MIRROR)
+    if not REPO:
+        print("缺少上游仓库：请用 --repo owner/name 指定，"
+              "或让镜像里存在带 repo 字段的 upstream-state.json", file=sys.stderr)
+        return 2
+    API = f"https://api.github.com/repos/{REPO}/commits?per_page=1"
+    GIT_URL = f"https://github.com/{REPO}.git"
 
     upstream, how = upstream_state()
     if upstream is None:
@@ -225,8 +251,8 @@ def main() -> int:
 
     print("\n=> an update is available. Refresh with:")
     print(f"   powershell -NoProfile -ExecutionPolicy Bypass -File {MIRROR}\\refresh.ps1")
-    print(f"   python tools/build_docs_index.py --docs {MIRROR}")
     print(f"   python tools/check_docs_update.py --mirror {MIRROR} --record")
+    print("   （若该镜像另有索引生成脚本，也一并重跑 —— 索引生成器通常属于平台专属，不在基座里）")
     return 1
 
 

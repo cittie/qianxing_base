@@ -23,18 +23,25 @@ information belongs here.
 ## Design layer rules
 
 - Everything under `design/` must be **platform-agnostic**: no engine names, no platform APIs.
+  Keep the *abstractions* free of platform assumptions; one concrete platform may appear as a
+  **worked example**, clearly marked as such — remove that example and the document must still
+  stand on its own.
 - Numbers and structure change here; platform implementation changes in the game repository.
   Never keep two copies of the same decision.
 - `architecture.md` keeps the abstractions that survive a platform swap — for example a single
   command-stream interface so a single-player AI, a human player and a networked opponent share
   one architecture.
 
+**Paths this repo does not contain.** The design documents cite files such as `rules/compliance.md`,
+`design/<a specific level>.md` or `research/<platform>.md`. Those live in the **paired game
+workspace**, which is not published here — treat them as context for *why* an abstraction looks the
+way it does, not as links you should be able to open.
+
 ## Tools
 
 | script | what it does | usage | exit code |
 | --- | --- | --- | --- |
-| `tools/build_docs_index.py` | builds node / heading / topic indexes over a local docs mirror | `--docs <mirror root>` | 0 |
-| `tools/check_docs_update.py` | asks whether the mirror is behind its upstream repo | `--mirror <mirror root>`, `--record`, `--json` | 0 = current, 1 = update or no baseline, 2 = unreachable |
+| `tools/check_docs_update.py` | asks whether a local docs mirror is behind its upstream repository (the upstream is given by flag or read from the mirror's own state file) | `--mirror <mirror root>`, `--repo owner/name`, `--record`, `--json` | 0 = current, 1 = update or no baseline, 2 = unreachable |
 | `tools/pac_proxy.py` | decodes a PAC file (this machine serves it as decimal bytes) so git/curl can use it | `--git-config` | 0 |
 | `tools/verify_comments_only.py` | proves a commit changed **only comments** (strips comments, compares byte-for-byte) | run inside the target repo | 1 = code changed too |
 

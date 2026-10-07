@@ -11,11 +11,13 @@
 
 from __future__ import annotations
 
+import argparse
 import subprocess
 import sys
 from pathlib import Path
 
-REPO = Path(r"D:\workspace\gil-inspect")
+# 目标仓库由 --repo 指定（默认当前目录）—— 不要把本机路径写死在这里
+REPO = Path.cwd()
 
 
 def git(*args: str) -> str:
@@ -38,6 +40,16 @@ def strip_comments(text: str, marker: str) -> str:
 
 
 def main() -> int:
+    global REPO
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--repo", default=".", help="目标仓库路径（默认当前目录）")
+    args = ap.parse_args()
+
+    REPO = Path(args.repo).expanduser().resolve()
+    if not (REPO / ".git").exists():
+        print(f"{REPO} 不是一个 git 仓库", file=sys.stderr)
+        return 2
+
     changed = [l for l in git("diff", "--name-only").splitlines() if l.strip()]
     if not changed:
         print("没有已改动的文件")
