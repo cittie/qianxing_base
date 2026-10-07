@@ -1,0 +1,19 @@
+# —— 基座：只放通用内容，绝不提交第三方文本 ——
+# 官方文档正文、官方规则原文、他人分享的资产、个人信息一律不进本仓库。
+
+# 本工具链的产物 / 缓存
+__pycache__/
+*.pyc
+*.sqlite
+*.sqlite3
+*.db
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# 若在本仓库内就地跑镜像工具，镜像与状态文件也不入库
+research/official-docs/
+**/upstream-state.json
