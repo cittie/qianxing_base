@@ -34,6 +34,7 @@ from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
 WORKSPACE = TOOLS.parent
+# 默认按"本脚本所在的基座"推断；从基座运行时请用 --mirror 显式指向游戏侧的镜像目录。
 MIRROR = WORKSPACE / "research" / "official-docs"
 STATE_FILE = MIRROR / "upstream-state.json"
 
